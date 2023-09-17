@@ -20,31 +20,38 @@ class ControlPage extends StatefulWidget {
 }
 
 class _ControlPageState extends State<ControlPage> {
-  double joystickRadius = 50.0; // Radio del joystick interior
-  double joystickX = 150.0; // Ajusta la posición X del joystick interior
-  double joystickY = 150.0; // Ajusta la posición Y del joystick interior
+  double joystickRadius = 50.0;
+  double joystickX = 150.0;
+  double joystickY = 210.0;
 
-  double outerCircleRadius = 100.0; // Radio del círculo exterior
-  double outerCircleX = 150.0; // Ajusta la posición X del círculo exterior
-  double outerCircleY = 150.0; // Ajusta la posición Y del círculo exterior
+  double secondJoystickRadius = 50.0;
+  double secondJoystickX = 650.0; // Ajusta la posición X del segundo joystick
+  double secondJoystickY = 210.0; // Ajusta la posición Y del segundo joystick
 
-  String direction = ''; // Variable para mantener la dirección actual
+  double outerCircleRadius = 100.0;
+  double outerCircleX = 150.0;
+  double outerCircleY = 210.0;
 
-  bool leftButtonPressed = false; // Indica si el botón izquierdo está presionado
-  bool rightButtonPressed = false; // Indica si el botón derecho está presionado
+  double outerCircleRadius2 = 100.0;
+  double outerCircleX2 =
+      650.0; // Ajusta la posición X del círculo exterior del segundo joystick
+  double outerCircleY2 =
+      210.0; // Ajusta la posición Y del círculo exterior del segundo joystick
+
+  String direction = '';
+  String secondJoystickDirection = '';
+
+  bool leftButtonPressed = false;
+  bool rightButtonPressed = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Control del Juego'),
-        backgroundColor: Colors.green,
-      ),
-      backgroundColor: Colors.grey[800], // Cambia el fondo a gris oscuro
+      backgroundColor: Colors.grey[800],
       body: Center(
         child: Stack(
           children: [
-            // Círculo exterior
+            // Círculo exterior para el primer joystick
             Positioned(
               left: outerCircleX - outerCircleRadius,
               top: outerCircleY - outerCircleRadius,
@@ -84,19 +91,7 @@ class _ControlPageState extends State<ControlPage> {
                       joystickY = newJoystickY;
 
                       // Detecta la dirección actual
-                      if (angle >= -pi / 4 && angle < pi / 4) {
-                        direction = 'derecha';
-                      } else if (angle >= pi / 4 && angle < 3 * pi / 4) {
-                        direction = 'arriba';
-                      } else if ((angle >= 3 * pi / 4 && angle <= pi) || (angle >= -pi && angle < -3 * pi / 4)) {
-                        direction = 'izquierda';
-                      } else {
-                        direction = 'abajo';
-                      }
-
-                      // Envía señales a la consola mientras el joystick se mueve
-                      print('Joystick en posición X: $joystickX, Y: $joystickY');
-                      print('Dirección actual: $direction');
+                      direction = calculateDirection(joystickX, joystickY);
                     });
                   }
                 },
@@ -118,90 +113,135 @@ class _ControlPageState extends State<ControlPage> {
                 ),
               ),
             ),
-            // Botón de disparo con efecto de "ripple"
+            // Círculo exterior para el segundo joystick
             Positioned(
-              right: 20.0, // Ajusta la posición X del botón de disparo
-              bottom: 60.0, // Ajusta la posición Y del botón de disparo
-              child: InkWell(
-                onTap: () {
-                  // Agrega aquí la lógica de disparo
-                  print('¡Disparo en dirección: $direction!');
+              left: outerCircleX2 - outerCircleRadius2,
+              top: outerCircleY2 - outerCircleRadius2,
+              child: Container(
+                width: outerCircleRadius2 * 2,
+                height: outerCircleRadius2 * 2,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.green, width: 2.0),
+                ),
+              ),
+            ),
+            // Segundo joystick interior
+            Positioned(
+              left: secondJoystickX - secondJoystickRadius,
+              top: secondJoystickY - secondJoystickRadius,
+              child: GestureDetector(
+                onPanUpdate: (details) {
+                  // Calcula las nuevas coordenadas del segundo joystick
+                  double newSecondJoystickX =
+                      secondJoystickX + details.delta.dx;
+                  double newSecondJoystickY =
+                      secondJoystickY + details.delta.dy;
+
+                  // Calcula las coordenadas relativas al círculo exterior del segundo joystick
+                  double relativeX = newSecondJoystickX - outerCircleX2;
+                  double relativeY = newSecondJoystickY - outerCircleY2;
+
+                  // Calcula la distancia desde el centro del círculo exterior del segundo joystick
+                  double distance = sqrt(pow(relativeX, 2) + pow(relativeY, 2));
+
+                  // Calcula el ángulo del segundo joystick
+                  double angle = atan2(relativeY, relativeX);
+
+                  // Verifica si el segundo joystick se mantiene dentro del radio del círculo exterior
+                  if (distance <= outerCircleRadius2) {
+                    setState(() {
+                      secondJoystickX = newSecondJoystickX;
+                      secondJoystickY = newSecondJoystickY;
+
+                      // Detecta la dirección actual del segundo joystick
+                      secondJoystickDirection =
+                          calculateDirection(secondJoystickX, secondJoystickY);
+                    });
+                  }
                 },
-                borderRadius: BorderRadius.circular(50.0), // Ajusta el radio de borde del "ripple"
+                onPanEnd: (details) {
+                  // Cuando se suelta el segundo joystick, vuelve a la posición central del círculo exterior del segundo joystick
+                  setState(() {
+                    secondJoystickX = outerCircleX2;
+                    secondJoystickY = outerCircleY2;
+                    secondJoystickDirection = ''; // Limpia la dirección
+                  });
+                },
                 child: Container(
-                  width: 160.0, // Ajusta el tamaño del botón de disparo
-                  height: 160.0, // Ajusta el tamaño del botón de disparo
+                  width: secondJoystickRadius * 2,
+                  height: secondJoystickRadius * 2,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.red, // Color del botón de disparo
+                    color: Colors.green, // Color del segundo joystick
                   ),
-                  child: Center(
-                    child: Text(
-                      'Disparar',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14.0, // Ajusta el tamaño del texto
-                      ),
-                    ),
+                ),
+              ),
+            ),
+            // Zona de apuntado
+            Positioned(
+              left: 500.0,
+              top: 20.0,
+              child: GestureDetector(
+                onPanUpdate: (details) {
+                  print(
+                      'Posición del dedo en X: ${details.localPosition.dx}, Y: ${details.localPosition.dy}');
+                },
+                child: Container(
+                  width: 329.0,
+                  height: 340.0,
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.red, width: 2.0),
                   ),
                 ),
               ),
             ),
             // Botones izquierda/derecha de la torreta
             Positioned(
-              left: 280.0, // Ajusta la posición X del botón izquierdo
-              bottom: 40.0, // Ajusta la posición Y del botón izquierdo
+              left: 280.0,
+              bottom: 40.0,
               child: GestureDetector(
                 onTapDown: (details) {
-                  // Detecta la posición del toque y mueve la torreta hacia la izquierda
                   print('Mover torreta hacia la izquierda');
-                  // Inicia señales constantes
                   leftButtonPressed = true;
                   rightButtonPressed = false;
                 },
                 onTapUp: (details) {
-                  // Cuando se levanta el dedo, detén el movimiento de la torreta
                   print('Detener movimiento de la torreta');
-                  // Detiene las señales constantes
                   leftButtonPressed = false;
                 },
                 child: Container(
-                  width: 100.0, // Ajusta el ancho del botón izquierdo
-                  height: 60.0, // Ajusta la altura del botón izquierdo
+                  width: 100.0,
+                  height: 60.0,
                   decoration: BoxDecoration(
-                    color: leftButtonPressed ? Colors.green : Colors.yellow, // Color del botón izquierdo
-                    borderRadius: BorderRadius.circular(10.0), // Hace que el botón sea redondeado
+                    color: leftButtonPressed ? Colors.green : Colors.yellow,
+                    borderRadius: BorderRadius.circular(10.0),
                   ),
-                  child: Icon(Icons.arrow_left, size: 36.0), // Símbolo de izquierda
+                  child: Icon(Icons.arrow_left, size: 36.0),
                 ),
               ),
             ),
             Positioned(
-              right: 280.0, // Ajusta la posición X del botón derecho
-              bottom: 40.0, // Ajusta la posición Y del botón derecho
+              right: 280.0,
+              bottom: 40.0,
               child: GestureDetector(
                 onTapDown: (details) {
-                  // Detecta la posición del toque y mueve la torreta hacia la derecha
                   print('Mover torreta hacia la derecha');
-                  // Inicia señales constantes
                   rightButtonPressed = true;
                   leftButtonPressed = false;
                 },
                 onTapUp: (details) {
-                  // Cuando se levanta el dedo, detén el movimiento de la torreta
                   print('Detener movimiento de la torreta');
-                  // Detiene las señales constantes
                   rightButtonPressed = false;
                 },
                 child: Container(
-                  width: 100.0, // Ajusta el ancho del botón derecho
-                  height: 60.0, // Ajusta la altura del botón derecho
+                  width: 100.0,
+                  height: 60.0,
                   decoration: BoxDecoration(
-                    color: rightButtonPressed ? Colors.green : Colors.yellow, // Color del botón derecho
-                    borderRadius: BorderRadius.circular(10.0), // Hace que el botón sea redondeado
+                    color: rightButtonPressed ? Colors.green : Colors.yellow,
+                    borderRadius: BorderRadius.circular(10.0),
                   ),
-                  child: Icon(Icons.arrow_right, size: 36.0), // Símbolo de derecha
+                  child: Icon(Icons.arrow_right, size: 36.0),
                 ),
               ),
             ),
@@ -209,5 +249,25 @@ class _ControlPageState extends State<ControlPage> {
         ),
       ),
     );
+  }
+
+  String calculateDirection(double x, double y) {
+    double centerX = joystickX;
+    double centerY = joystickY;
+    double deltaX = x - centerX;
+    double deltaY = y - centerY;
+
+    double angle = atan2(deltaY, deltaX);
+
+    if (angle >= -pi / 4 && angle < pi / 4) {
+      return 'derecha';
+    } else if (angle >= pi / 4 && angle < 3 * pi / 4) {
+      return 'arriba';
+    } else if ((angle >= 3 * pi / 4 && angle <= pi) ||
+        (angle >= -pi && angle < -3 * pi / 4)) {
+      return 'izquierda';
+    } else {
+      return 'abajo';
+    }
   }
 }
